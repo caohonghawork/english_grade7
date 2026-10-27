@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hệ Thống Kiểm Tra Trực Tuyến - Tiếng Anh 7 (Đề số 1)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Modal: Thông tin thí sinh trước khi thi -->
+    <div id="startModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 sm:p-8 transform transition-all">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-3 shadow-inner">
+                    <i data-lucide="graduation-cap" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-800">ĐỀ KIỂM TRA ĐỊNH KỲ</h2>
+                <p class="text-slate-500 text-sm mt-1">Môn: Tiếng Anh 7 (Unit 1 - Unit 3)</p>
+            </div>
+            
+            <form id="startForm" onsubmit="startExam(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Họ và tên học sinh <span class="text-red-500">*</span></label>
+                    <input type="text" id="studentName" required placeholder="Ví dụ: Nguyễn Văn An" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm">
+                </div>
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-600 mb-1">Lớp học <span class="text-red-500">*</span></label>
+                    <input type="text" id="studentClass" required placeholder="Ví dụ: 7A1" class="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition text-sm">
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1">
+                    <p class="font-semibold text-slate-700 flex items-center gap-1.5"><i data-lucide="info" class="w-4 h-4 text-blue-500"></i> Quy chế phòng thi:</p>
+                    <p>• Thời gian làm bài: <strong>60 phút</strong> (80 câu hỏi trắc nghiệm).</p>
+                    <p>• Hệ thống sẽ tự động ghi nhận nếu chuyển tab hoặc mở ứng dụng khác.</p>
+                    <p>• Nhấn <strong>Nộp bài</strong> khi hoàn thành hoặc hệ thống tự thu bài khi hết giờ.</p>
+                </div>
+                <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold py-3 px-4 rounded-xl shadow-lg shadow-blue-500/25 transition duration-150 flex items-center justify-center gap-2">
+                    <i data-lucide="play" class="w-4 h-4"></i> Bắt đầu làm bài
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Cảnh báo chuyển Tab / Gian lận -->
+    <div id="violationModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-red-950/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center border-2 border-red-500">
+            <div class="w-14 h-14 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-3">
+                <i data-lucide="alert-triangle" class="w-8 h-8"></i>
+            </div>
+            <h3 class="text-lg font-bold text-red-600">CẢNH BÁO VI PHẠM!</h3>
+            <p class="text-sm text-slate-600 mt-2">Hệ thống phát hiện bạn vừa rời khỏi màn hình bài thi. Vui lòng tập trung làm bài!</p>
+            <div class="my-4 p-2 bg-red-50 text-red-700 font-medium text-xs rounded-lg">
+                Số lần chuyển tab: <span id="violationCount" class="font-bold text-base">0</span>
+            </div>
+            <button onclick="closeViolationModal()" class="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2.5 px-4 rounded-xl shadow transition">
+                Tôi đã hiểu, quay lại làm bài
+            </button>
+        </div>
+    </div>
+
+    <!-- Modal Xác nhận nộp bài -->
+    <div id="submitConfirmModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6">
+            <h3 class="text-lg font-bold text-slate-800 mb-2">Xác nhận nộp bài?</h3>
+            <p class="text-sm text-slate-600 mb-4" id="submitModalText">Bạn có chắc chắn muốn nộp bài ngay bây giờ không?</p>
+            <div class="flex gap-3">
+                <button onclick="closeSubmitConfirmModal()" class="flex-1 px-4 py-2.5 border border-slate-300 rounded-xl text-slate-700 hover:bg-slate-100 font-medium text-sm transition">Tiếp tục làm</button>
+                <button onclick="finalizeExam()" class="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium text-sm shadow shadow-blue-500/25 transition">Đồng ý nộp</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Header cố định thanh trạng thái -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-2.5 flex items-center justify-between gap-4">
+            <!-- Thí sinh -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-sm">
+                    <i data-lucide="user" class="w-5 h-5"></i>
+                </div>
+                <div class="hidden sm:block">
+                    <h1 id="headerStudentName" class="font-bold text-slate-800 text-sm leading-tight">Thí sinh</h1>
+                    <span id="headerStudentClass" class="text-xs text-slate-500">Lớp: --</span>
+                </div>
+            </div>
+
+            <!-- Đồng hồ đếm ngược -->
+            <div class="flex items-center gap-2 bg-slate-100 px-3.5 py-1.5 rounded-xl border border-slate-200">
+                <i data-lucide="clock" id="timerIcon" class="w-4 h-4 text-blue-600"></i>
+                <span id="timerDisplay" class="font-mono font-bold text-base text-slate-800">60:00</span>
+            </div>
+
+            <!-- Tiến độ & Nộp bài -->
+            <div class="flex items-center gap-3">
+                <div class="hidden md:flex flex-col items-end text-xs">
+                    <span class="text-slate-500">Tiến độ bài làm</span>
+                    <span class="font-bold text-slate-700"><span id="answeredCount">0</span>/80 câu</span>
+                </div>
+                <button onclick="openSubmitConfirmModal()" class="bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white text-xs sm:text-sm font-semibold px-4 py-2 rounded-xl shadow-md shadow-emerald-600/20 flex items-center gap-1.5 transition">
+                    <i data-lucide="check-circle" class="w-4 h-4"></i> Nộp bài
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
+        
+        <!-- Cột hiển thị câu hỏi (3 cột) -->
+        <section class="lg:col-span-3 space-y-6" id="examContainer">
+            <!-- Nội dung bài thi render ở đây qua JS -->
+            <div class="text-center py-12 text-slate-400">
+                <p>Vui lòng điền thông tin để bắt đầu bài thi.</p>
+            </div>
+        </section>
+
+        <!-- Cột Sidebar: Điều hướng câu hỏi (1 cột) -->
+        <aside class="lg:col-span-1">
+            <div class="sticky top-20 bg-white rounded-2xl border border-slate-200 shadow-sm p-4 space-y-4">
+                <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                    <h3 class="font-bold text-slate-800 text-sm flex items-center gap-1.5">
+                        <i data-lucide="layout-grid" class="w-4 h-4 text-blue-600"></i> Mục lục câu hỏi
+                    </h3>
+                    <span class="text-xs bg-blue-50 text-blue-700 font-semibold px-2 py-0.5 rounded-full">80 Câu</span>
+                </div>
+
+                <!-- Chú thích trạng thái -->
+                <div class="grid grid-cols-3 gap-1.5 text-[11px] text-slate-500 pb-2 border-b border-slate-100">
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-slate-200"></span> Chưa làm</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-blue-600"></span> Đã làm</div>
+                    <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded bg-amber-400"></span> Đặt cờ</div>
+                </div>
+
+                <!-- Lưới số câu hỏi 1 -> 80 -->
+                <div id="questionPalette" class="grid grid-cols-5 sm:grid-cols-8 lg:grid-cols-5 gap-1.5 max-h-[380px] overflow-y-auto pr-1">
+                    <!-- Nút câu hỏi sẽ được sinh bằng Javascript -->
+                </div>
+
+                <!-- Phím tắt nộp bài trong sidebar -->
+                <div class="pt-2">
+                    <button onclick="openSubmitConfirmModal()" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold rounded-xl transition flex items-center justify-center gap-2">
+                        <i data-lucide="send" class="w-3.5 h-3.5"></i> Kết thúc bài thi
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Màn hình xem kết quả thi (Ẩn lúc đầu) -->
+    <div id="resultScreen" class="hidden max-w-5xl mx-auto px-4 py-8 w-full space-y-6">
+        <!-- Bảng điểm tổng quan -->
+        <div class="bg-white rounded-3xl border border-slate-200 shadow-xl overflow-hidden p-6 sm:p-8 text-center relative">
+            <div class="max-w-md mx-auto space-y-3">
+                <span class="inline-block px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold uppercase tracking-wider">Báo Cáo Kết Quả Thi</span>
+                <h2 id="resultStudentTitle" class="text-2xl font-bold text-slate-800">Thí sinh</h2>
+                
+                <div class="flex items-center justify-center gap-6 my-6">
+                    <div class="text-center">
+                        <div class="text-4xl sm:text-5xl font-black text-blue-600" id="resultScore">0.0</div>
+                        <div class="text-xs text-slate-500 font-semibold mt-1">ĐIỂM SỐ (Thang 10)</div>
+                    </div>
+                    <div class="h-12 w-px bg-slate-200"></div>
+                    <div class="text-center">
+                        <div class="text-4xl sm:text-5xl font-black text-emerald-600" id="resultCorrectRatio">0/80</div>
+                        <div class="text-xs text-slate-500 font-semibold mt-1">CÂU TRẢ LỜI ĐÚNG</div>
+                    </div>
+                </div>
+
+                <!-- Chi tiết theo từng phần -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 text-left pt-4 border-t border-slate-100 text-xs">
+                    <div class="p-2.5 bg-slate-50 rounded-xl">
+                        <div class="text-slate-500 font-medium">1. Phát âm</div>
+                        <div class="font-bold text-slate-800 mt-1" id="part1Score">0/20</div>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl">
+                        <div class="text-slate-500 font-medium">2. Từ vựng & NP</div>
+                        <div class="font-bold text-slate-800 mt-1" id="part2Score">0/30</div>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl">
+                        <div class="text-slate-500 font-medium">3. Giao tiếp</div>
+                        <div class="font-bold text-slate-800 mt-1" id="part3Score">0/10</div>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl">
+                        <div class="text-slate-500 font-medium">4. Đọc hiểu</div>
+                        <div class="font-bold text-slate-800 mt-1" id="part4Score">0/10</div>
+                    </div>
+                    <div class="p-2.5 bg-slate-50 rounded-xl col-span-2 sm:col-span-1">
+                        <div class="text-slate-500 font-medium">5. Viết</div>
+                        <div class="font-bold text-slate-800 mt-1" id="part5Score">0/10</div>
+                    </div>
+                </div>
+
+                <!-- Nút thao tác -->
+                <div class="flex flex-wrap items-center justify-center gap-3 pt-4">
+                    <button onclick="window.print()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-xl flex items-center gap-1.5 transition">
+                        <i data-lucide="printer" class="w-4 h-4"></i> In bảng điểm
+                    </button>
+                    <button onclick="location.reload()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-500/25 transition">
+                        <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Làm lại bài thi
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bộ lọc xem lại chi tiết -->
+        <div class="flex items-center justify-between bg-white p-4 rounded-2xl border border-slate-200">
+            <h3 class="font-bold text-slate-800 text-base">Xem Lại Chi Tiết & Lời Giải</h3>
+            <div class="flex gap-1.5 text-xs">
+                <button onclick="filterReview('all')" id="btnFilterAll" class="px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white">Tất cả (80)</button>
+                <button onclick="filterReview('wrong')" id="btnFilterWrong" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700">Câu sai/bỏ lỡ</button>
+                <button onclick="filterReview('correct')" id="btnFilterCorrect" class="px-3 py-1.5 rounded-lg font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700">Câu đúng</button>
+            </div>
+        </div>
+
+        <!-- Danh sách câu hỏi review -->
+        <div id="reviewContainer" class="space-y-4"></div>
+    </div>
+
+    <!-- Dữ liệu bài thi 80 câu hỏi và hệ thống script -->
+    <script>
+        // 80 CÂU HỎI THEO ĐỀ CƯƠNG VÀ ĐÁP ÁN ĐÃ BIÊN SOẠN
+        const questionsData = [
+            // PART 1: PRONUNCIATION (Q1 - Q20)
+            {
+                id: 1, part: 1, partTitle: "PART 1. PRONUNCIATION (SOUNDS & STRESS)",
+                subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["teacher", "bird", "singer", "computer"],
+                underlined: ["er", "ir", "er", "er"],
+                answer: 1, // B
+                explanation: "'bird' phát âm là /ɜː/, các từ còn lại có phần gạch chân phát âm là /ə/."
+            },
+            {
+                id: 2, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["term", "her", "dancer", "burn"],
+                underlined: ["er", "er", "er", "ur"],
+                answer: 2, // C
+                explanation: "'dancer' phát âm là /ə/, các từ còn lại phát âm là /ɜː/."
+            },
+            {
+                id: 3, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["skated", "donated", "started", "cooked"],
+                underlined: ["ed", "ed", "ed", "ed"],
+                answer: 3, // D
+                explanation: "'cooked' phát âm là /t/ vì sau phụ âm vô thanh /k/. Các từ còn lại tận cùng bằng âm /t/ hoặc /d/ nên đuôi -ed phát âm là /ɪd/."
+            },
+            {
+                id: 4, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["cleaned", "played", "matched", "joined"],
+                underlined: ["ed", "ed", "ed", "ed"],
+                answer: 2, // C
+                explanation: "'matched' đuôi -ed phát âm là /t/ sau âm /tʃ/. Các từ còn lại phát âm là /d/."
+            },
+            {
+                id: 5, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["washed", "laughed", "missed", "recycled"],
+                underlined: ["ed", "ed", "ed", "ed"],
+                answer: 3, // D
+                explanation: "'recycled' phát âm là /d/. Các từ còn lại đuôi -ed phát âm là /t/ sau các âm vô thanh /ʃ/, /f/, /s/."
+            },
+            {
+                id: 6, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["of", "leaf", "fast", "fresh"],
+                underlined: ["f", "f", "f", "f"],
+                answer: 0, // A
+                explanation: "'of' có chữ f được phát âm là /v/. Các từ còn lại phát âm là /f/."
+            },
+            {
+                id: 7, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["half", "knife", "often", "cave"],
+                underlined: ["f", "fe", "f", "ve"],
+                answer: 3, // D
+                explanation: "'cave' phát âm là /v/. Các từ còn lại phát âm là /f/ (chú ý 'often' câm chữ t, f vẫn là /f/)."
+            },
+            {
+                id: 8, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["doctor", "work", "fur", "person"],
+                underlined: ["or", "or", "ur", "er"],
+                answer: 0, // A
+                explanation: "'doctor' phát âm là /ə/. Các từ còn lại phát âm là /ɜː/."
+            },
+            {
+                id: 9, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["planted", "helped", "walked", "dropped"],
+                underlined: ["ed", "ed", "ed", "ed"],
+                answer: 0, // A
+                explanation: "'planted' đuôi -ed phát âm là /ɪd/ (sau âm /t/). Các từ còn lại phát âm là /t/."
+            },
+            {
+                id: 10, part: 1, subType: "sound",
+                instruction: "Find the word whose underlined part is pronounced differently from the others.",
+                question: "Choose the word with the different underlined sound:",
+                options: ["invited", "provided", "collected", "loved"],
+                underlined: ["ed", "ed", "ed", "ed"],
+                answer: 3, // D
+                explanation: "'loved' đuôi -ed phát âm là /d/. Các từ còn lại tận cùng bằng /t/, /d/ nên phát âm là /ɪd/."
+            },
+            {
+                id: 11, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["hobby", "collect", "enjoy", "avoid"],
+                answer: 0, // A
+                explanation: "'hobby' nhấn âm 1. Các từ còn lại (collect, enjoy, avoid) nhấn âm 2."
+            },
+            {
+                id: 12, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["community", "activity", "photography", "volunteer"],
+                answer: 3, // D
+                explanation: "'volunteer' nhấn âm 3 (/ˌvɒl.ənˈtɪər/). Các từ còn lại nhấn âm 2."
+            },
+            {
+                id: 13, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["disease", "patient", "unhealthy", "advice"],
+                answer: 1, // B
+                explanation: "'patient' nhấn âm 1. Các từ còn lại (disease, unhealthy, advice) nhấn âm 2."
+            },
+            {
+                id: 14, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["donate", "provide", "protect", "blanket"],
+                answer: 3, // D
+                explanation: "'blanket' nhấn âm 1. Các từ còn lại (donate, provide, protect) là động từ nhấn âm 2."
+            },
+            {
+                id: 15, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["exercise", "sunburn", "allergy", "delicious"],
+                answer: 3, // D
+                explanation: "'delicious' nhấn âm 2. Các từ còn lại nhấn âm 1."
+            },
+            {
+                id: 16, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["garden", "model", "prefer", "member"],
+                answer: 2, // C
+                explanation: "'prefer' nhấn âm 2. Các từ còn lại là danh từ nhấn âm 1."
+            },
+            {
+                id: 17, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["important", "regular", "elderly", "musical"],
+                answer: 0, // A
+                explanation: "'important' nhấn âm 2. Các từ còn lại nhấn âm 1."
+            },
+            {
+                id: 18, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["maintain", "reduce", "balance", "decide"],
+                answer: 2, // C
+                explanation: "'balance' nhấn âm 1. Các từ còn lại (maintain, reduce, decide) nhấn âm 2."
+            },
+            {
+                id: 19, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["difficult", "expensive", "responsible", "fantastic"],
+                answer: 0, // A
+                explanation: "'difficult' nhấn âm 1. Các từ còn lại nhấn âm 2."
+            },
+            {
+                id: 20, part: 1, subType: "stress",
+                instruction: "Find the word that has a different stress pattern from the others.",
+                question: "Choose the word with the different stress position:",
+                options: ["recycle", "encourage", "organize", "condition"],
+                answer: 2, // C
+                explanation: "'organize' nhấn âm 1. Các từ còn lại nhấn âm 2."
+            },
+
+            // PART 2: VOCABULARY & GRAMMAR (Q21 - Q50)
+            {
+                id: 21, part: 2, partTitle: "PART 2. VOCABULARY & GRAMMAR",
+                question: "My sister loves doing arts and crafts; she spends hours building detailed ________ out of cardboard.",
+                options: ["dollhouses", "vitamins", "diets", "flu"],
+                answer: 0,
+                explanation: "'dollhouses' (nhà búp bê) kết hợp với 'cardboard' (bìa các-tông). Phù hợp chủ đề Hobbies ở Unit 1."
+            },
+            {
+                id: 22, part: 2,
+                question: "You should wear a hat and apply ________ to avoid sunburn on sunny summer days.",
+                options: ["eye drops", "suncream", "lip balm", "pimples"],
+                answer: 1,
+                explanation: "'suncream' (kem chống nắng) dùng để tránh bị 'sunburn' (cháy nắng)."
+            },
+            {
+                id: 23, part: 2,
+                question: "The school launched a campaign to ________ money and warm clothes for poor children in mountainous areas.",
+                options: ["rise", "raise", "donate", "foster"],
+                answer: 1,
+                explanation: "Cụm từ cố định: 'raise money' nghĩa là gây quỹ, quyên góp tiền."
+            },
+            {
+                id: 24, part: 2,
+                question: "If you sit too close to the screen in dim light, your eyes will get ________.",
+                options: ["chapped", "fit", "sore", "energetic"],
+                answer: 2,
+                explanation: "'sore eyes' = đau mắt, mỏi mắt."
+            },
+            {
+                id: 25, part: 2,
+                question: "Doing community ________ not only helps society but also teaches students teamwork and responsibility.",
+                options: ["project", "service", "effort", "hobby"],
+                answer: 1,
+                explanation: "'community service' nghĩa là hoạt động công ích/phục vụ cộng đồng (Unit 3)."
+            },
+            {
+                id: 26, part: 2,
+                question: "Lan is very ________; she spent three whole weeks carving a single eggshell without breaking it.",
+                options: ["patient", "active", "impatient", "careless"],
+                answer: 0,
+                explanation: "'patient' (kiên nhẫn, kiên trì) là phẩm chất cần thiết khi làm chạm khắc vỏ trứng."
+            },
+            {
+                id: 27, part: 2,
+                question: "Eating too much processed food and sugary snacks can lead to ________.",
+                options: ["lifestyle", "vegetarian", "obesity", "strength"],
+                answer: 2,
+                explanation: "Ăn quá nhiều thức ăn nhanh và đồ ngọt dẫn đến chứng béo phì ('obesity')."
+            },
+            {
+                id: 28, part: 2,
+                question: "My mother ________ blood twice a year to help save patients in emergency situations.",
+                options: ["receives", "provides", "collects", "donates"],
+                answer: 3,
+                explanation: "Cụm từ 'donate blood' nghĩa là hiến máu; chủ ngữ My mother số ít chia ở thì HTĐ: 'donates'."
+            },
+            {
+                id: 29, part: 2,
+                question: "To stay healthy, you should ________ a balanced diet rich in green vegetables and lean meat.",
+                options: ["maintain", "avoid", "ignore", "protect"],
+                answer: 0,
+                explanation: "'maintain a balanced diet' nghĩa là duy trì một chế độ ăn uống cân bằng."
+            },
+            {
+                id: 30, part: 2,
+                question: "Horse riding is an exciting ________ activity, but it can be quite expensive.",
+                options: ["indoor", "local", "outdoor", "homeless"],
+                answer: 2,
+                explanation: "Cưỡi ngựa (horse riding) là hoạt động ngoài trời ('outdoor activity')."
+            },
+            {
+                id: 31, part: 2,
+                question: "Look at those boys! They are ________ up litter along the bank of the river.",
+                options: ["giving", "picking", "taking", "bringing"],
+                answer: 1,
+                explanation: "Cụm động từ: 'pick up litter' = nhặt rác."
+            },
+            {
+                id: 32, part: 2,
+                question: "The volunteers helped ________ old books, notebooks, and pens to remote primary schools.",
+                options: ["tutor", "plant", "distribute", "attend"],
+                answer: 2,
+                explanation: "'distribute' nghĩa là phân phát, trao tặng sách vở đến vùng xa."
+            },
+            {
+                id: 33, part: 2,
+                question: "My brother dislikes ________ video games all day; he prefers outdoor sports.",
+                options: ["playing", "play", "to playing", "played"],
+                answer: 0,
+                explanation: "Sau động từ chỉ sở thích / không thích 'dislike', ta dùng động từ ở dạng V-ing ('playing')."
+            },
+            {
+                id: 34, part: 2,
+                question: "She enjoys ________ stamps from different foreign countries in her spare time.",
+                options: ["collect", "collected", "collecting", "to collecting"],
+                answer: 2,
+                explanation: "Cấu trúc: enjoy + V-ing ('collecting')."
+            },
+            {
+                id: 35, part: 2,
+                question: "Many youngsters fancy ________ model planes from recycled paper and cardboard.",
+                options: ["to make", "making", "make", "made"],
+                answer: 1,
+                explanation: "Cấu trúc: fancy + V-ing ('making')."
+            },
+            {
+                id: 36, part: 2,
+                question: "We ________ a clean-up campaign in our schoolyard last Sunday.",
+                options: ["organize", "organized", "organizing", "organizes"],
+                answer: 1,
+                explanation: "Dấu hiệu thì Quá khứ đơn 'last Sunday' -> động từ thêm -ed: 'organized'."
+            },
+            {
+                id: 37, part: 2,
+                question: "Nam: 'Did you ________ trees in the city park yesterday?' – Minh: 'Yes, we did.'",
+                options: ["plant", "planted", "planting", "plants"],
+                answer: 0,
+                explanation: "Trong câu hỏi nghi vấn thì QKĐ với trợ động từ 'Did', động từ chính giữ nguyên mẫu ('plant')."
+            },
+            {
+                id: 38, part: 2,
+                question: "While his parents were at work, Jack ________ up at 6 a.m. and prepared breakfast for himself.",
+                options: ["gets", "got", "is getting", "get"],
+                answer: 1,
+                explanation: "Chuỗi hành động trong quá khứ: got up and prepared (QKĐ của get là 'got')."
+            },
+            {
+                id: 39, part: 2,
+                question: "The sun ________ in the East and sets in the West.",
+                options: ["rise", "rises", "rose", "is rising"],
+                answer: 1,
+                explanation: "Sự thật hiển nhiên, chân lý tự nhiên chia ở thì Hiện tại đơn; chủ ngữ ngôi 3 số ít thêm -s ('rises')."
+            },
+            {
+                id: 40, part: 2,
+                question: "My uncle ________ coffee every morning before heading to the office.",
+                options: ["drinks", "drink", "drank", "is drinking"],
+                answer: 0,
+                explanation: "Thói quen hàng ngày với 'every morning' chia ở HTĐ, chủ ngữ 'My uncle' số ít -> 'drinks'."
+            },
+            {
+                id: 41, part: 2,
+                question: "Our English class usually ________ at 8:00 a.m. on Monday mornings.",
+                options: ["starts", "start", "started", "is starting"],
+                answer: 0,
+                explanation: "Lịch trình, thời khóa biểu cố định dùng thì HTĐ, chủ ngữ số ít -> 'starts'."
+            },
+            {
+                id: 42, part: 2,
+                question: "She ________ to the fitness club yesterday because she had a terrible backache.",
+                options: ["didn't went", "doesn't go", "didn't go", "wasn't go"],
+                answer: 2,
+                explanation: "Câu phủ định thì QKĐ (yesterday): didn't + V nguyên mẫu ('didn't go')."
+            },
+            {
+                id: 43, part: 2,
+                question: "________ your sister often ride a bicycle to school?",
+                options: ["Do", "Does", "Is", "Did"],
+                answer: 1,
+                explanation: "Thì HTĐ với trạng từ 'often', chủ ngữ số ít 'your sister' và động từ thường 'ride' -> mượn trợ động từ 'Does'."
+            },
+            {
+                id: 44, part: 2,
+                question: "Last night, Tom and his brother ________ in the local nursing home to chat with the elderly.",
+                options: ["were", "was", "are", "been"],
+                answer: 0,
+                explanation: "Thì QKĐ của động từ to be ('last night') với chủ ngữ số nhiều (Tom and his brother) là 'were'."
+            },
+            {
+                id: 45, part: 2,
+                question: "My father ________ any junk food last month because he was on a strict diet.",
+                options: ["didn't ate", "doesn't eat", "didn't eat", "not ate"],
+                answer: 2,
+                explanation: "Dấu hiệu 'last month' -> phủ định QKĐ: didn't + V nguyên thể ('didn't eat')."
+            },
+            {
+                id: 46, part: 2,
+                question: "Doing volunteer work is special ________ me because it brings joy to other people.",
+                options: ["with", "for", "to", "on"],
+                answer: 2,
+                explanation: "Cấu trúc: 'special to somebody' = có ý nghĩa đặc biệt đối với ai."
+            },
+            {
+                id: 47, part: 2,
+                question: "He ate too much seafood at the party, ________ he had an upset stomach.",
+                options: ["but", "because", "so", "or"],
+                answer: 2,
+                explanation: "Liên từ 'so' chỉ kết quả: anh ấy ăn quá nhiều hải sản, VÌ VẬY anh ấy bị đau bụng."
+            },
+            {
+                id: 48, part: 2,
+                question: "You should drink plenty of warm water, ________ you shouldn't drink cold ice water when you have a sore throat.",
+                options: ["and", "but", "so", "because"],
+                answer: 0,
+                explanation: "Liên từ 'and' liên kết hai lời khuyên bổ sung cho nhau."
+            },
+            {
+                id: 49, part: 2,
+                question: "I wanted to visit the community shelter yesterday, ________ it rained heavily all afternoon.",
+                options: ["because", "so", "but", "although"],
+                answer: 2,
+                explanation: "Liên từ 'but' thể hiện sự tương phản đối lập giữa mong muốn và thời tiết cản trở."
+            },
+            {
+                id: 50, part: 2,
+                question: "Regular exercise helps you burn ________ and stay energetic throughout the day.",
+                options: ["fat", "calories", "spots", "weights"],
+                answer: 1,
+                explanation: "Cụm từ khoa học thông dụng trong Unit 2: 'burn calories' = đốt cháy calo."
+            },
+
+            // PART 3: EVERYDAY ENGLISH & COMMUNICATION (Q51 - Q60)
+            {
+                id: 51, part: 3, partTitle: "PART 3. EVERYDAY ENGLISH & COMMUNICATION",
+                question: "Peter: 'Do you fancy going for a bike ride around the lake this afternoon?'\n– Mary: '________. I have to finish my project.'",
+                options: [
+                    "Great idea!",
+                    "I'd love to, but I'm afraid I can't.",
+                    "That sounds interesting!",
+                    "Yes, let's do that."
+                ],
+                answer: 1,
+                explanation: "Lời từ chối lịch sự khi được mời rủ: 'I'd love to, but I'm afraid I can't' (Mình rất thích nhưng e là không được)."
+            },
+            {
+                id: 52, part: 3,
+                question: "Ann: 'I have a terrible toothache and a swollen cheek.'\n– Mark: '________.'",
+                options: [
+                    "You shouldn't touch your face.",
+                    "You should see a dentist right away.",
+                    "Why don't you drink cold water?",
+                    "You must exercise more."
+                ],
+                answer: 1,
+                explanation: "Đưa ra lời khuyên phù hợp cho người bị đau răng: 'You should see a dentist right away'."
+            },
+            {
+                id: 53, part: 3,
+                question: "Lan: 'Our class collected over two hundred books for the village library.'\n– John: '________!'",
+                options: [
+                    "Sounds like great work!",
+                    "You're welcome!",
+                    "Never mind.",
+                    "It's none of my business."
+                ],
+                answer: 0,
+                explanation: "Đưa ra lời khen ngợi cho một việc làm ý nghĩa vì cộng đồng: 'Sounds like great work!' (Nghe thật là một việc làm tuyệt vời!)."
+            },
+            {
+                id: 54, part: 3,
+                question: "David: 'Thank you very much for showing me how to make this paper model.'\n– Robert: '________.'",
+                options: [
+                    "Not at all. It's my pleasure.",
+                    "No, thanks.",
+                    "I don't think so.",
+                    "I agree with you."
+                ],
+                answer: 0,
+                explanation: "Đáp lại lời cảm ơn một cách lịch sự: 'Not at all. It's my pleasure' (Không có gì đâu, đó là niềm vinh hạnh của tôi)."
+            },
+            {
+                id: 55, part: 3,
+                question: "Alice: 'My eyes feel really dry and tired after typing on the laptop.'\n– Doctor: '________.'",
+                options: [
+                    "You should wear thick gloves.",
+                    "You ought to take a 20-second break every 20 minutes.",
+                    "You shouldn't eat vegetables.",
+                    "You can buy some lip balm."
+                ],
+                answer: 1,
+                explanation: "Quy tắc y tế 20-20-20 cho mắt mỏi khi dùng máy tính: nghỉ 20 giây sau mỗi 20 phút nhìn màn hình."
+            },
+            {
+                id: 56, part: 3,
+                question: "Tom: 'Why don't we donate our old clothes to street children this weekend?'\n– Peter: '________. That will keep them warm.'",
+                options: [
+                    "Good idea!",
+                    "That's a pity.",
+                    "I don't care.",
+                    "Nothing special."
+                ],
+                answer: 0,
+                explanation: "Đồng thuận tích cực với một lời đề nghị: 'Good idea!' (Ý tưởng hay đấy!)."
+            },
+            {
+                id: 57, part: 3,
+                question: "Guest: 'Excuse me, could you tell me where the nearest health clinic is?'\n– Local resident: '________.'",
+                options: [
+                    "Yes, I do.",
+                    "Go straight ahead, then turn left at the traffic light.",
+                    "It's expensive to buy medicine.",
+                    "No problem, I don't need it."
+                ],
+                answer: 1,
+                explanation: "Chỉ đường đúng ngữ cảnh khi được hỏi địa điểm phòng khám."
+            },
+            {
+                id: 58, part: 3,
+                question: "Mai: 'I took part in planting 50 trees in our neighbourhood last Saturday.'\n– Linda: '________!'",
+                options: [
+                    "What a shame!",
+                    "How wonderful!",
+                    "I'm sorry to hear that.",
+                    "Cheer up!"
+                ],
+                answer: 1,
+                explanation: "Lời khen ngợi, tán thưởng: 'How wonderful!' (Thật tuyệt vời!)."
+            },
+            {
+                id: 59, part: 3,
+                question: "Son: 'Mum, can I stay up late to watch the football match tonight?'\n– Mother: '________. You have an important exam early tomorrow.'",
+                options: [
+                    "Yes, of course.",
+                    "Sure, go ahead.",
+                    "No, dear, you can't.",
+                    "It doesn't matter."
+                ],
+                answer: 2,
+                explanation: "Từ chối lời xin phép một cách nghiêm khắc nhưng dịu dàng: 'No, dear, you can't' vì mai có bài kiểm tra quan trọng."
+            },
+            {
+                id: 60, part: 3,
+                question: "Frank: 'Would you like some herbal tea with honey for your cough?'\n– Nick: '________. It helps soothe my throat.'",
+                options: [
+                    "Yes, please. Thank you!",
+                    "No, I dislike tea.",
+                    "You're welcome.",
+                    "I don't want to help."
+                ],
+                answer: 0,
+                explanation: "Đáp lại lời mời đồ uống một cách lịch sự khi muốn nhận: 'Yes, please. Thank you!'."
+            },
+
+            // PART 4: READING COMPREHENSION (Q61 - Q70)
+            // PASSAGE 1: Q61 - Q65
+            {
+                id: 61, part: 4, partTitle: "PART 4. READING COMPREHENSION",
+                passageIndex: 1,
+                passageTitle: "Reading Passage 1: The Transformative Value of Gardening",
+                passageContent: `Having a creative hobby can greatly improve our mental and physical well-being. Today, an increasing number of teenagers are choosing gardening as a meaningful pastime instead of spending hours staring at phone screens. Though gardening requires patience and hard physical work, the rewards it brings to young people are undeniable.\n\nFirstly, gardening offers teenagers an ideal outdoor workout. When digging soil, carrying watering cans, and planting seeds, individuals burn calories and build muscular strength naturally. In addition, spending time in gardens exposes people to fresh air and sunlight, which triggers the production of vitamin D—an essential nutrient for maintaining strong bones and supporting healthy immune systems.\n\nSecondly, working with greenery effectively reduces daily academic anxiety. Modern students face heavy schoolwork and intense pressure from examinations. Tending to delicate blossoms and watching young sprouts grow day by day helps relax an overstimulated mind. Scientific research demonstrates that touching damp soil and breathing in floral scents significantly lower cortisol levels, the primary hormone responsible for human stress.\n\nFinally, cultivating plants teaches valuable practical skills and fosters responsibility. A garden cannot thrive without consistent watering, weeding, and pest protection. By managing a small vegetable patch or flowerbed, adolescents understand the law of cause and effect: only dedication and regular attention produce sweet fruits. In short, taking up gardening transforms young people into healthier, calmer, and more reliable individuals.`,
+                question: "What is the main idea of the entire passage?",
+                options: [
+                    "Gardening is too difficult and exhausting for modern adolescents.",
+                    "Taking up gardening provides substantial physical, mental, and personal benefits.",
+                    "Vitamin D from sunlight is the only reason people should do gardening.",
+                    "Teenagers should avoid screens by playing indoor games instead."
+                ],
+                answer: 1,
+                explanation: "Toàn bài nêu bật các lợi ích toàn diện của việc làm vườn đối với thể chất, tinh thần và việc rèn luyện tính kiên nhẫn/trách nhiệm."
+            },
+            {
+                id: 62, part: 4,
+                passageIndex: 1,
+                question: "The word 'undeniable' in paragraph 1 is closest in meaning to:",
+                options: ["certain and clear", "questionable", "unimportant", "harmful"],
+                answer: 0,
+                explanation: "'undeniable' = không thể phủ nhận được, chắc chắn và rõ ràng (certain and clear)."
+            },
+            {
+                id: 63, part: 4,
+                passageIndex: 1,
+                question: "According to paragraph 2, how does gardening benefit physical health?",
+                options: [
+                    "It eliminates the need for proper sleep and nutrition.",
+                    "It acts as an outdoor workout and encourages the body to produce vitamin D.",
+                    "It keeps teenagers away from all kinds of medical treatments.",
+                    "It makes muscles weaker through repetitive digging."
+                ],
+                answer: 1,
+                explanation: "Đoạn 2 nêu rõ: 'gardening offers teenagers an ideal outdoor workout... and sunlight triggers the production of vitamin D'."
+            },
+            {
+                id: 64, part: 4,
+                passageIndex: 1,
+                question: "The word 'cortisol' in paragraph 3 is mentioned as:",
+                options: [
+                    "a toxic chemical found inside flower petals.",
+                    "an artificial fertilizer used for growing sprouts.",
+                    "a hormone directly linked to human stress.",
+                    "a nutrient that strengthens human bone structure."
+                ],
+                answer: 2,
+                explanation: "Đoạn 3 viết: 'lower cortisol levels, the primary hormone responsible for human stress' (hormone gây ra căng thẳng)."
+            },
+            {
+                id: 65, part: 4,
+                passageIndex: 1,
+                question: "Which of the following statements is NOT TRUE according to the passage?",
+                options: [
+                    "Spending hours on mobile screens is healthier than taking care of plants.",
+                    "Gardening demands patience, consistent effort, and regular attention.",
+                    "Academic pressure can be relieved by tending to living plants.",
+                    "Neglecting weeds and pests prevents a garden from flourishing."
+                ],
+                answer: 0,
+                explanation: "Khẳng định A hoàn toàn sai vì bài viết chỉ ra nhìn màn hình quá nhiều không tốt bằng việc tham gia làm vườn."
+            },
+
+            // PASSAGE 2: Q66 - Q70
+            {
+                id: 66, part: 4,
+                passageIndex: 2,
+                passageTitle: "Reading Passage 2: Youth Volunteers Making a Difference",
+                passageContent: `Community service has become a widespread movement that connects compassionate hearts across the country. In recent years, youth-led volunteer groups have made noticeable improvements to living standards in remote and underprivileged areas. Through targeted outreach projects, students are making tangible differences while enriching their own life perspectives.\n\nOne major focus of community campaigns is educational support. Many university and high school volunteers travel to mountainous regions to organize free evening classes for ethnic minority children. Besides teaching fundamental subjects such as Math, Vietnamese, and English, volunteers also supply textbooks, notebooks, backpacks, and warm coats. These educational missions create better study environments and motivate underprivileged pupils to stay in school.\n\nIn urban areas, youth clubs actively tackle environmental and public health challenges. Every weekend, teams of energetic volunteers organize clean-up projects along canals, parks, and residential alleys, collecting tons of plastic waste for recycling. Furthermore, some medical student groups offer free basic health check-ups and distribute hygiene gift boxes to elderly citizens living alone in nursing shelters.\n\nVolunteering is truly a two-way street. While recipients receive timely assistance and warmth, volunteers themselves acquire vital life skills that cannot be gained solely from books. They develop leadership, crisis management, and empathy toward disadvantaged lives. Ultimately, participating in community programs reminds young citizens of their civic duty and unites communities in kindness.`,
+                question: "Which best serves as the title for the passage?",
+                options: [
+                    "The Cost of Organizing Mountainous Charity Trips",
+                    "Young Volunteers: Spreading Compassion and Transforming Communities",
+                    "Environmental Crises in Major Urban Canals",
+                    "Challenges of Teaching Ethnic Minority Students"
+                ],
+                answer: 1,
+                explanation: "Tiêu đề phù hợp nhất khái quát toàn bài: Tình nguyện viên trẻ lan tỏa yêu thương và thay đổi cộng đồng."
+            },
+            {
+                id: 67, part: 4,
+                passageIndex: 2,
+                question: "The word 'tangible' in paragraph 1 is closest in meaning to:",
+                options: ["clear and real", "hidden", "imaginary", "negative"],
+                answer: 0,
+                explanation: "'tangible' nghĩa là hữu hình, rõ rệt, thực tế (clear and real)."
+            },
+            {
+                id: 68, part: 4,
+                passageIndex: 2,
+                question: "What do urban volunteer teams do on weekends according to paragraph 3?",
+                options: [
+                    "They travel to mountainous provinces to distribute textbooks.",
+                    "They stay at home to produce recycling products.",
+                    "They clear trash from canals and parks and provide health support to elderly people.",
+                    "They open commercial markets inside residential areas."
+                ],
+                answer: 2,
+                explanation: "Đoạn 3 đề cập: dọn sạch rác thải nhựa ở kênh đào, công viên và sinh viên y tế khám sức khỏe, tặng quà cho người cao tuổi."
+            },
+            {
+                id: 69, part: 4,
+                passageIndex: 2,
+                question: "The word 'recipients' in paragraph 4 refers to:",
+                options: [
+                    "volunteers who organize projects",
+                    "people who receive help and support from charity activities",
+                    "doctors in large municipal hospitals",
+                    "teachers in charge of regular school classes"
+                ],
+                answer: 1,
+                explanation: "'recipients' = những người nhận (sự giúp đỡ, hỗ trợ từ thiện)."
+            },
+            {
+                id: 70, part: 4,
+                passageIndex: 2,
+                question: "Which of the following can be inferred from the final paragraph?",
+                options: [
+                    "Only recipients gain real advantages from community service.",
+                    "Volunteers only gain academic certificates for their future resumes.",
+                    "Community service helps volunteers become more empathetic and skilled leaders.",
+                    "Doing voluntary work prevents adolescents from having regular friendships."
+                ],
+                answer: 2,
+                explanation: "Đoạn cuối nhấn mạnh: tình nguyện là con đường hai chiều, giúp người tham gia rèn luyện khả năng lãnh đạo và lòng trắc ẩn."
+            },
+
+            // PART 5: WRITING (Q71 - Q80)
+            {
+                id: 71, part: 5, partTitle: "PART 5. WRITING & SENTENCE TRANSFORMATION",
+                question: "Choose the sentence that is closest in meaning to: 'Sarah enjoys knitting woolen sweaters for orphan children in her free time.'",
+                options: [
+                    "Sarah's hobby is knitting woolen sweaters for orphan children in her free time.",
+                    "Sarah's hobby are knitting woolen sweaters for orphan children in her free time.",
+                    "Sarah dislikes knitting woolen sweaters for orphan children in her free time.",
+                    "Sarah prefers knit woolen sweaters for orphan children to doing nothing."
+                ],
+                answer: 0,
+                explanation: "Cấu trúc chuyển đổi tương đương: S + enjoy + V-ing <-> One's hobby is + V-ing."
+            },
+            {
+                id: 72, part: 5,
+                question: "Choose the sentence that is closest in meaning to: 'It is a good idea for you to wash your hands before meals to avoid infections.'",
+                options: [
+                    "You shouldn't wash your hands before meals because of infections.",
+                    "You should wash your hands before meals to avoid infections.",
+                    "You ought wash your hands before meals to avoid infections.",
+                    "You had better washing your hands before meals to avoid infections."
+                ],
+                answer: 1,
+                explanation: "Cấu trúc khuyên bảo: 'It is a good idea for sb to do sth' = 'You should + V nguyên mẫu'."
+            },
+            {
+                id: 73, part: 5,
+                question: "Choose the sentence that is closest in meaning to: 'Tom likes playing badminton more than swimming.'",
+                options: [
+                    "Tom prefers playing badminton than swimming.",
+                    "Tom prefers playing badminton to swimming.",
+                    "Tom prefers play badminton to swim.",
+                    "Tom prefers swim to playing badminton."
+                ],
+                answer: 1,
+                explanation: "Cấu trúc: prefer V-ing TO V-ing (thích làm cái gì hơn làm cái gì)."
+            },
+            {
+                id: 74, part: 5,
+                question: "Choose the sentence that is closest in meaning to: 'Eating too much junk food every day is bad for your digestive system.'",
+                options: [
+                    "Eating too much junk food every day isn't harmful to your digestive system.",
+                    "Eating too much junk food every day is good for your digestive system.",
+                    "Eating too much junk food every day isn't good for your digestive system.",
+                    "Not eating junk food every day is bad for your digestive system."
+                ],
+                answer: 2,
+                explanation: "'is bad for...' = 'is not good for...' (có hại / không tốt cho...)."
+            },
+            {
+                id: 75, part: 5,
+                question: "Choose the sentence that is closest in meaning to: 'He was sick yesterday, but he still attended the community clean-up.'",
+                options: [
+                    "He was sick yesterday; although, he still attended the community clean-up.",
+                    "Because he was sick yesterday, he attended the community clean-up.",
+                    "Although he was sick yesterday, he still attended the community clean-up.",
+                    "He attended the community clean-up so he was sick yesterday."
+                ],
+                answer: 2,
+                explanation: "Chuyển đổi câu ghép chứa liên từ 'but' sang câu phức có mệnh đề trạng ngữ chỉ sự nhượng bộ 'Although' (Mặc dù)."
+            },
+            {
+                id: 76, part: 5,
+                question: "Choose the best sentence made from the cues: 'We / provide / warm / clothes / homeless / people / last / winter.'",
+                options: [
+                    "We provide warm clothes for homeless people last winter.",
+                    "We provided warm clothes for homeless people last winter.",
+                    "We were provided warm clothes homeless people last winter.",
+                    "We provided warm clothes to homeless people on last winter."
+                ],
+                answer: 1,
+                explanation: "Thì QKĐ với 'last winter' dùng động từ 'provided', cụm: provide sth for sb (cung cấp quần áo ấm cho người vô gia cư)."
+            },
+            {
+                id: 77, part: 5,
+                question: "Choose the best sentence made from the cues: 'My / brother / hate / wake / up / early / cold / mornings.'",
+                options: [
+                    "My brother hates waking up early on cold mornings.",
+                    "My brother hate waking up early on cold mornings.",
+                    "My brother hates wake up early in cold mornings.",
+                    "My brother is hating waking up early on cold mornings."
+                ],
+                answer: 0,
+                explanation: "Chủ ngữ số ít 'My brother' -> 'hates'; sau hate dùng V-ing 'waking'; giới từ chỉ buổi trong ngày cụ thể dùng 'on cold mornings'."
+            },
+            {
+                id: 78, part: 5,
+                question: "Choose the best sentence made from the cues: 'How / many / hours / a day / you / spend / surf / Internet?'",
+                options: [
+                    "How many hours a day do you spend to surf the Internet?",
+                    "How many hours a day do you spend surfing the Internet?",
+                    "How many hours a day are you spend surfing the Internet?",
+                    "How many hours a day did you spent surfing the Internet?"
+                ],
+                answer: 1,
+                explanation: "Cấu trúc: spend + time + V-ing; câu hỏi hiện tại đơn: Do you spend surfing the Internet?"
+            },
+            {
+                id: 79, part: 5,
+                question: "Choose the best sentence made from the cues: 'If / you / not / wear / sunscreen, / you / get / sunburn.'",
+                options: [
+                    "If you don't wear sunscreen, you will get sunburn.",
+                    "If you didn't wear sunscreen, you will get sunburn.",
+                    "If you not wear sunscreen, you get sunburn.",
+                    "If you don't wear sunscreen, you getting sunburn."
+                ],
+                answer: 0,
+                explanation: "Câu điều kiện loại 1: Mệnh đề If chia hiện tại đơn phủ định (don't wear), mệnh đề chính chia tương lai đơn (will get)."
+            },
+            {
+                id: 80, part: 5,
+                question: "Choose the best sentence made from the cues: 'Last year / our school / collect / thousands / books / donate / mountainous / schools.'",
+                options: [
+                    "Last year, our school collected thousands of books to donate to mountainous schools.",
+                    "Last year, our school collect thousands of books donating mountainous schools.",
+                    "Last year, our school was collected thousands books to donate to mountainous schools.",
+                    "Last year, our school collected thousand of books to donate mountainous schools."
+                ],
+                answer: 0,
+                explanation: "Thì QKĐ 'collected', cụm số lượng 'thousands of books', chỉ mục đích 'to donate to mountainous schools'."
+            }
+        ];
+
+        // Trạng thái của bài thi
+        let student = { name: "", class: "" };
+        let userAnswers = {}; // { qId: selectedOptionIndex }
+        let flaggedQuestions = new Set();
+        let timeLeft = 60 * 60; // 60 phút tính bằng giây
+        let timerInterval = null;
+        let tabViolations = 0;
+        let isExamFinished = false;
+
+        // Bắt đầu làm bài
+        function startExam(e) {
+            e.preventDefault();
+            const name = document.getElementById("studentName").value.trim();
+            const className = document.getElementById("studentClass").value.trim();
+
+            if (!name || !className) return;
+
+            student.name = name;
+            student.class = className;
+
+            document.getElementById("headerStudentName").innerText = name;
+            document.getElementById("headerStudentClass").innerText = `Lớp: ${className}`;
+            document.getElementById("startModal").classList.add("hidden");
+
+            renderQuestions();
+            renderQuestionPalette();
+            startTimer();
+            setupAntiCheat();
+            lucide.createIcons();
+        }
+
+        // Chống gian lận: Kiểm tra chuyển tab & cấm chuột phải
+        function setupAntiCheat() {
+            document.addEventListener("visibilitychange", function() {
+                if (document.hidden && !isExamFinished) {
+                    tabViolations++;
+                    document.getElementById("violationCount").innerText = tabViolations;
+                    document.getElementById("violationModal").classList.remove("hidden");
+                }
+            });
+
+            // Vô hiệu hóa chuột phải
+            document.addEventListener("contextmenu", function(e) {
+                e.preventDefault();
+            });
+
+            // Cảnh báo khi người dùng f5 hoặc tải lại trang
+            window.addEventListener("beforeunload", function (e) {
+                if (!isExamFinished) {
+                    e.preventDefault();
+                    e.returnValue = '';
+                }
+            });
+        }
+
+        function closeViolationModal() {
+            document.getElementById("violationModal").classList.add("hidden");
+        }
+
+        // Đồng hồ đếm ngược
+        function startTimer() {
+            const display = document.getElementById("timerDisplay");
+            const icon = document.getElementById("timerIcon");
+
+            timerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(timerInterval);
+                    finalizeExam();
+                    return;
+                }
+                timeLeft--;
+
+                const minutes = Math.floor(timeLeft / 60);
+                const seconds = timeLeft % 60;
+                display.innerText = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+
+                // Cảnh báo khi dưới 5 phút
+                if (timeLeft < 300) {
+                    display.classList.add("text-red-600");
+                    icon.classList.add("text-red-600", "animate-pulse");
+                }
+            }, 1000);
+        }
+
+        // Render toàn bộ câu hỏi
+        function renderQuestions() {
+            const container = document.getElementById("examContainer");
+            let html = "";
+            let currentPart = null;
+            let currentPassage = null;
+
+            questionsData.forEach((q, index) => {
+                // Tiêu đề Section nếu chuyển phần mới
+                if (q.partTitle && q.partTitle !== currentPart) {
+                    currentPart = q.partTitle;
+                    html += `
+                        <div class="bg-gradient-to-r from-blue-700 to-indigo-800 text-white p-5 rounded-2xl shadow-md mt-6 first:mt-0">
+                            <h2 class="text-base sm:text-lg font-bold tracking-wide">${currentPart}</h2>
+                            <p class="text-xs text-blue-100 mt-1">Vui lòng đọc kỹ yêu cầu trước khi chọn đáp án.</p>
+                        </div>
+                    `;
+                }
+
+                // Render bài đọc nếu là Reading passage mới
+                if (q.passageTitle && q.passageTitle !== currentPassage) {
+                    currentPassage = q.passageTitle;
+                    html += `
+                        <div class="bg-amber-50/70 border border-amber-200 rounded-2xl p-5 sm:p-6 space-y-3 mt-4">
+                            <div class="flex items-center gap-2 text-amber-800 font-bold text-sm">
+                                <i data-lucide="book-open" class="w-4 h-4"></i> ${q.passageTitle}
+                            </div>
+                            <div class="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-line bg-white/80 p-4 rounded-xl border border-amber-100 shadow-sm max-h-96 overflow-y-auto">
+                                ${q.passageContent}
+                            </div>
+                        </div>
+                    `;
+                }
+
+                // Render từng câu hỏi
+                html += `
+                    <div id="question-card-${q.id}" class="bg-white rounded-2xl border border-slate-200 p-5 sm:p-6 shadow-sm hover:border-blue-300 transition-all space-y-4">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-center gap-2">
+                                <span class="bg-blue-100 text-blue-700 font-bold text-xs px-2.5 py-1 rounded-lg">Câu ${q.id}</span>
+                                ${q.subType === 'stress' ? '<span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Trọng âm</span>' : ''}
+                                ${q.subType === 'sound' ? '<span class="text-[11px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded">Phát âm</span>' : ''}
+                            </div>
+                            <button onclick="toggleFlag(${q.id})" id="flag-btn-${q.id}" title="Đánh dấu xem lại" class="p-1.5 rounded-lg text-slate-400 hover:text-amber-500 hover:bg-amber-50 transition">
+                                <i data-lucide="bookmark" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+
+                        ${q.instruction ? `<p class="text-xs italic text-slate-500">${q.instruction}</p>` : ''}
+
+                        <div class="text-sm sm:text-base font-medium text-slate-800 leading-snug whitespace-pre-line">
+                            ${formatQuestionText(q)}
+                        </div>
+
+                        <!-- 4 Lựa chọn A, B, C, D -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                            ${q.options.map((opt, optIndex) => {
+                                const letter = String.fromCharCode(65 + optIndex);
+                                return `
+                                    <label onclick="selectAnswer(${q.id}, ${optIndex})" id="opt-label-${q.id}-${optIndex}" class="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition text-xs sm:text-sm font-normal text-slate-700">
+                                        <div class="w-6 h-6 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center font-bold text-xs text-slate-600 shrink-0 option-badge">
+                                            ${letter}
+                                        </div>
+                                        <span class="flex-1">${opt}</span>
+                                    </label>
+                                `;
+                            }).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+        }
+
+        // Định dạng chữ gạch chân cho bài phát âm
+        function formatQuestionText(q) {
+            if (q.subType === "sound" && q.underlined) {
+                let optionsWithUnderline = q.options.map((opt, idx) => {
+                    let letter = String.fromCharCode(65 + idx);
+                    let part = q.underlined[idx];
+                    let regex = new RegExp(`(${part})`, 'i');
+                    let highlighted = opt.replace(regex, '<u><strong>$1</strong></u>');
+                    return `<strong>${letter}.</strong> ${highlighted}`;
+                }).join('&nbsp;&nbsp;&nbsp;&nbsp;');
+                return `<div class="mb-2">${q.question}</div><div class="text-sm">${optionsWithUnderline}</div>`;
+            }
+            return q.question;
+        }
+
+        // Render danh sách ô câu hỏi nhanh ở sidebar
+        function renderQuestionPalette() {
+            const palette = document.getElementById("questionPalette");
+            palette.innerHTML = questionsData.map(q => `
+                <button onclick="scrollToQuestion(${q.id})" id="palette-btn-${q.id}" class="w-full aspect-square rounded-lg bg-slate-100 hover:bg-slate-200 border border-slate-200 text-xs font-semibold text-slate-600 flex items-center justify-center relative transition">
+                    ${q.id}
+                    <span id="palette-flag-${q.id}" class="hidden absolute -top-1 -right-1 w-2 h-2 rounded-full bg-amber-500 ring-2 ring-white"></span>
+                </button>
+            `).join('');
+        }
+
+        // Chọn đáp án
+        function selectAnswer(questionId, optionIndex) {
+            userAnswers[questionId] = optionIndex;
+
+            // Cập nhật giao diện của 4 đáp án
+            for (let i = 0; i < 4; i++) {
+                const label = document.getElementById(`opt-label-${questionId}-${i}`);
+                if (!label) continue;
+                const badge = label.querySelector(".option-badge");
+
+                if (i === optionIndex) {
+                    label.classList.add("bg-blue-50", "border-blue-500", "text-blue-900", "font-medium");
+                    badge.classList.add("bg-blue-600", "text-white", "border-blue-600");
+                } else {
+                    label.classList.remove("bg-blue-50", "border-blue-500", "text-blue-900", "font-medium");
+                    badge.classList.remove("bg-blue-600", "text-white", "border-blue-600");
+                }
+            }
+
+            // Cập nhật nút trong bảng Palette
+            const paletteBtn = document.getElementById(`palette-btn-${questionId}`);
+            if (paletteBtn) {
+                paletteBtn.classList.remove("bg-slate-100", "text-slate-600");
+                paletteBtn.classList.add("bg-blue-600", "text-white", "border-blue-600");
+            }
+
+            // Cập nhật đếm số câu đã trả lời
+            const count = Object.keys(userAnswers).length;
+            document.getElementById("answeredCount").innerText = count;
+        }
+
+        // Đặt / Hủy cờ đánh dấu
+        function toggleFlag(questionId) {
+            const flagBtn = document.getElementById(`flag-btn-${questionId}`);
+            const paletteFlag = document.getElementById(`palette-flag-${questionId}`);
+
+            if (flaggedQuestions.has(questionId)) {
+                flaggedQuestions.delete(questionId);
+                flagBtn.classList.remove("text-amber-500", "bg-amber-50");
+                paletteFlag.classList.add("hidden");
+            } else {
+                flaggedQuestions.add(questionId);
+                flagBtn.classList.add("text-amber-500", "bg-amber-50");
+                paletteFlag.classList.remove("hidden");
+            }
+        }
+
+        // Cuộn tới câu hỏi
+        function scrollToQuestion(id) {
+            const el = document.getElementById(`question-card-${id}`);
+            if (el) {
+                el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        // Modal nộp bài
+        function openSubmitConfirmModal() {
+            const totalAnswered = Object.keys(userAnswers).length;
+            const text = document.getElementById("submitModalText");
+            if (totalAnswered < 80) {
+                text.innerHTML = `Bạn mới hoàn thành <strong class="text-blue-600">${totalAnswered}/80</strong> câu hỏi. Bạn vẫn còn <strong class="text-amber-600">${80 - totalAnswered}</strong> câu chưa làm. Bạn có chắc chắn muốn nộp không?`;
+            } else {
+                text.innerText = "Bạn đã hoàn thành đủ 80/80 câu hỏi. Bạn có chắc chắn muốn nộp bài để chấm điểm?";
+            }
+            document.getElementById("submitConfirmModal").classList.remove("hidden");
+        }
+
+        function closeSubmitConfirmModal() {
+            document.getElementById("submitConfirmModal").classList.add("hidden");
+        }
+
+        // Hoàn tất và chấm bài
+        function finalizeExam() {
+            isExamFinished = true;
+            clearInterval(timerInterval);
+            closeSubmitConfirmModal();
+
+            // Tính điểm
+            let correctCount = 0;
+            let partScores = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+
+            questionsData.forEach(q => {
+                if (userAnswers[q.id] === q.answer) {
+                    correctCount++;
+                    partScores[q.part]++;
+                }
+            });
+
+            const finalScore = ((correctCount / 80) * 10).toFixed(1);
+
+            // Ẩn vùng làm bài, hiện màn hình kết quả
+            document.querySelector("main").classList.add("hidden");
+            document.querySelector("header").classList.add("hidden");
+            document.getElementById("resultScreen").classList.remove("hidden");
+
+            // Điền kết quả
+            document.getElementById("resultStudentTitle").innerText = `${student.name} - Lớp ${student.class}`;
+            document.getElementById("resultScore").innerText = finalScore;
+            document.getElementById("resultCorrectRatio").innerText = `${correctCount}/80`;
+
+            document.getElementById("part1Score").innerText = `${partScores[1]}/20 câu`;
+            document.getElementById("part2Score").innerText = `${partScores[2]}/30 câu`;
+            document.getElementById("part3Score").innerText = `${partScores[3]}/10 câu`;
+            document.getElementById("part4Score").innerText = `${partScores[4]}/10 câu`;
+            document.getElementById("part5Score").innerText = `${partScores[5]}/10 câu`;
+
+            renderReviewSection('all');
+            lucide.createIcons();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Render xem lại chi tiết
+        function renderReviewSection(filterType) {
+            const container = document.getElementById("reviewContainer");
+            let filteredQuestions = questionsData;
+
+            if (filterType === 'correct') {
+                filteredQuestions = questionsData.filter(q => userAnswers[q.id] === q.answer);
+            } else if (filterType === 'wrong') {
+                filteredQuestions = questionsData.filter(q => userAnswers[q.id] !== q.answer);
+            }
+
+            if (filteredQuestions.length === 0) {
+                container.innerHTML = `<div class="bg-white p-8 text-center rounded-2xl border text-slate-500 text-sm">Không có câu hỏi nào trong danh mục này.</div>`;
+                return;
+            }
+
+            container.innerHTML = filteredQuestions.map(q => {
+                const userAns = userAnswers[q.id];
+                const isCorrect = userAns === q.answer;
+                const isSkipped = userAns === undefined;
+
+                return `
+                    <div class="bg-white rounded-2xl border ${isCorrect ? 'border-emerald-200' : 'border-rose-200'} p-5 sm:p-6 shadow-sm space-y-4">
+                        <div class="flex items-center justify-between">
+                            <span class="font-bold text-xs px-2.5 py-1 rounded-lg ${isCorrect ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}">
+                                Câu ${q.id} • ${isCorrect ? 'ĐÚNG' : (isSkipped ? 'CHƯA TRẢ LỜI' : 'CHƯA ĐÚNG')}
+                            </span>
+                            <span class="text-xs text-slate-400 font-medium">Đáp án đúng: <strong>${String.fromCharCode(65 + q.answer)}</strong></span>
+                        </div>
+
+                        <div class="text-sm sm:text-base font-semibold text-slate-800">
+                            ${formatQuestionText(q)}
+                        </div>
+
+                        <!-- Các lựa chọn -->
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">
+                            ${q.options.map((opt, idx) => {
+                                const letter = String.fromCharCode(65 + idx);
+                                let optStyle = "border-slate-200 text-slate-600";
+                                let badgeStyle = "bg-slate-100 text-slate-600";
+
+                                if (idx === q.answer) {
+                                    optStyle = "bg-emerald-50 border-emerald-500 text-emerald-900 font-medium";
+                                    badgeStyle = "bg-emerald-600 text-white";
+                                } else if (idx === userAns && !isCorrect) {
+                                    optStyle = "bg-rose-50 border-rose-500 text-rose-900 font-medium line-through";
+                                    badgeStyle = "bg-rose-600 text-white";
+                                }
+
+                                return `
+                                    <div class="flex items-center gap-2.5 p-2.5 rounded-xl border ${optStyle}">
+                                        <span class="w-5 h-5 rounded flex items-center justify-center font-bold text-xs ${badgeStyle}">${letter}</span>
+                                        <span>${opt}</span>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+
+                        <!-- Giải thích chi tiết -->
+                        <div class="bg-blue-50/70 border border-blue-200 rounded-xl p-3 text-xs text-blue-950 space-y-1">
+                            <div class="font-bold text-blue-900 flex items-center gap-1.5">
+                                <i data-lucide="help-circle" class="w-3.5 h-3.5 text-blue-600"></i> Lời giải chi tiết:
+                            </div>
+                            <p class="leading-relaxed">${q.explanation}</p>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            lucide.createIcons();
+        }
+
+        // Lọc bài xem lại
+        function filterReview(type) {
+            ['btnFilterAll', 'btnFilterWrong', 'btnFilterCorrect'].forEach(btnId => {
+                document.getElementById(btnId).className = "px-3 py-1.5 rounded-lg font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700";
+            });
+
+            if (type === 'all') document.getElementById('btnFilterAll').className = "px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white";
+            if (type === 'wrong') document.getElementById('btnFilterWrong').className = "px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white";
+            if (type === 'correct') document.getElementById('btnFilterCorrect').className = "px-3 py-1.5 rounded-lg font-semibold bg-blue-600 text-white";
+
+            renderReviewSection(type);
+        }
+
+        // Khởi tạo icon
+        window.onload = function() {
+            lucide.createIcons();
+        };
+    </script>
+</body>
+</html>
